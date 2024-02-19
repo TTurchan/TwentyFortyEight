@@ -1,147 +1,157 @@
-use rand::Rng;
+use crate::board_states::gen_new;
+
+pub mod board_states;
 
 
-fn main() {
-    let mut test_board: Vec<Vec<i32>> = vec![vec![2,2,2,0],vec![0,2,2,4],vec![4,2,4,2],vec![0,0,0,0]];
-    let mut new_board = rotate_and_update(test_board.clone(),0);
-    new_board = gen_new(new_board,0);
-    let mut random_generator = rand::thread_rng();
-    while new_board != test_board{
-        let dir = random_generator.gen_range(0..4);
-        println!("{}",dir);
-        test_board = new_board.clone();
-        new_board = gen_new(new_board,dir);
-        let print_clone = new_board.clone();
-        for row in print_clone{
-            println!("{:?}",row);
+struct Path {
+    score: i32,
+    directions: Vec<u8>,
+    board: Vec<Vec<i32>>,
+}
+
+impl Path{
+    fn new(directions: Vec<u8>,board: Vec<Vec<i32>>) -> Path{
+        Path {
+            score: 0,
+            directions,
+            board,
+        }
+
+
+    }
+    fn clone(&self) -> Path{
+        Path {
+            score: self.score,
+            directions: self.directions.clone(),
+            board: self.board.clone(),
         }
     }
+    fn dir(&self, dir: u8) -> Path{
+        let new_board = board_states::gen_new(self.board.clone(),dir);
+        let mut new_directions = self.directions.clone();
 
+        new_directions.push(dir);
+        Path {
+            score: self.score + count_zeros(new_board.clone()),
+            directions: new_directions,
+            board: new_board,
+
+        }
+    }
+    fn curr_board(&self) -> Vec<Vec<i32>> {
+        self.board.clone()
+    }
+    fn curr_score(&self) -> i32{
+        self.score.clone()
+    }
+    fn curr_path(&self) -> Vec<u8>{
+        self.directions.clone()
+    }
 
 }
-fn gen_new(board: Vec<Vec<i32>>,dir: u8) -> Vec<Vec<i32>> {
-    let mut zeros:Vec<Vec<usize>> = Vec::new();
-    let mut updated_board:Vec<Vec<i32>> = board.clone();
-    updated_board = rotate_and_update(updated_board,dir);
+
+
+fn main(){
+    let mut board = board_states::create_board(4_usize);
+    let mut k = 0;
+    while k < 1{
+        k+=1;
+        println!("before update {:?}",board);
+        let mut optimal_path: Path = Path::new(vec![],board.clone());
+        let mut optimal_score = optimal_path.curr_score();
+        while optimal_path.curr_path().len() < 10000{
+            let mut new_path = optimal_path.clone();
+            let mut new_optimal = new_path.clone();
+            let mut score = 0;
+            for i in 0..4{
+                new_path = new_path.clone().dir(i);
+                if new_path.curr_score() > score{
+                    new_optimal = new_path.clone();
+                }
+            }
+            optimal_path = new_optimal.clone();
+
+        }
+
+//        for i in 0..4{
+//
+//            let i_path:Path = Path::new(vec![i],board.clone());
+//            if i_path.curr_score() > optimal_score{
+//                optimal_score = i_path.curr_score();
+//                optimal_path = i_path.clone();
+//            }
+//
+//            for j in 0..4{
+//                let j_path= i_path.clone().dir(j);
+//                if j_path.curr_score() > optimal_score{
+//                    optimal_score = j_path.curr_score();
+//                    optimal_path = j_path.clone();
+//                }
+//
+//                for k in 0..4{
+//
+//                    let k_path= j_path.clone().dir(k);
+//                    if k_path.curr_score() > optimal_score{
+//                        optimal_score = k_path.curr_score();
+//                        optimal_path = k_path.clone();
+//                    }
+//
+//                    for l in 0..4{
+//
+//                        let l_path= k_path.clone().dir(l);
+//                        if l_path.curr_score() > optimal_score{
+//                            optimal_score = l_path.curr_score();
+//                            optimal_path = l_path.clone();
+//                        }
+//
+//
+//                    }
+//                }
+//            }
+//        }
+        let path = optimal_path.curr_path();
+        println!("{:?}",path);
+        let mut new_board = board.clone();
+        for k in 0..path.len(){
+            new_board = board_states::gen_new(new_board.clone(),path[k]);
+        }
+        println!("{:?}",new_board);
+
+    }
+
+}
+
+
+fn count_zeros(board: Vec<Vec<i32>>) -> i32 {
+    let mut score = 0;
     for i in 0..board.len(){
-        for j in 0..board[0].len(){
-            if board[i][j] == 0{
-                zeros.push(vec![i,j]);
+        for k in 0..board[i].len(){
+            if board[i][k] == 0{
+                score +=0;
             }
-        }
-
-    }
-    if zeros.len() == 0{
-        return updated_board;
-    }
-    let mut rng = rand::thread_rng();
-
-    let random_ind = rng.gen_range(0..zeros.len());
-    let new_num = rng.gen_range(1..=2);
-    let index = &zeros[random_ind];
-
-    updated_board[index[0]][index[1]] = 2*new_num;
-    updated_board
-}
-fn rotate_and_update(board: Vec<Vec<i32>>, dir: u8) -> Vec<Vec<i32>> {
-    if dir == 0{
-        return update_board(board)
-    }
-    if dir == 1{
-        //rotate once then update then rotate backwards
-        let rows = board.len();
-        let cols = if rows > 0 { board[0].len() } else { 0 };
-        let mut rotated_board = vec![vec![0; rows]; cols]; // Create a new matrix with swapped dimensions
-
-        for (i, row) in board.iter().enumerate() {
-            for (j, &val) in row.iter().enumerate() {
-                rotated_board[j][rows - 1 - i] = val; // Place elements in their new positions
+            else{
+                score+=board[i][k];
             }
-        }
-        let board = update_board(rotated_board.clone());
-        for (i,row) in board.iter().enumerate() {
-            for (j,&val) in row.iter().enumerate() {
-                rotated_board[rows-j-1][i] = val;
-            }
-        }
-        return rotated_board
-    }
-    if dir == 2{
-        //rotate once then update then rotate backwards
-        let rows = board.len();
-        let cols = if rows > 0 { board[0].len() } else { 0 };
-        let mut rotated_board = vec![vec![0; rows]; cols]; // Create a new matrix with swapped dimensions
 
-        for (i, row) in board.iter().enumerate() {
-            for (j, &val) in row.iter().enumerate() {
-                rotated_board[rows-1-j][i] = val; // Place elements in their new positions
-            }
         }
-        let board = update_board(rotated_board.clone());
-        for (i,row) in board.iter().enumerate() {
-            for (j,&val) in row.iter().enumerate() {
-                rotated_board[j][rows-i-1] = val;
-            }
-        }
-        return rotated_board
     }
-    if dir == 3{
-        let mut rotated_board = board;
-        rotated_board.reverse();
-        for row in rotated_board.iter_mut() {
-            row.reverse();
-        }
-        let board = update_board(rotated_board.clone());
-        let mut rotated_board = board;
-        rotated_board.reverse();
-        for row in rotated_board.iter_mut() {
-            row.reverse();
-        }
-        rotated_board
-    } else{
-        board
-    }
+    score
 }
 
+//    let mut test_board: Vec<Vec<i32>> = vec![vec![2,2,2,0],vec![0,2,2,4],vec![4,2,4,2],vec![0,0,0,0]];
+//    let mut new_board = board_states::rotate_and_update(test_board.clone(),0);
+//    new_board = gen_new(new_board,0);
+//    let mut random_generator = rand::thread_rng();
+//    while new_board != test_board{
+//        let dir = random_generator.gen_range(0..4);
+//        println!("{}",dir);
+//        test_board = new_board.clone();
+//        new_board = gen_new(new_board,dir);
+//        let print_clone = new_board.clone();
+//        for row in print_clone{
+//            println!("{:?}",row);
+//        }
+//    }
 
-fn update_board(board: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
-    let mut result_vector: Vec<Vec<i32>> = Vec::new();
 
-    for row in board {
-        let mut processed_row: Vec<i32> = Vec::new();
-        let mut ind = 0;
-        let mut k = 0;
-        let mut merge_flag = false;
-        while k < row.len(){
-            if row[k] ==0 {
-                k+=1;
-            }else if merge_flag == false && ind > 0 && processed_row[ind-1] == row[k]{
-                processed_row[ind-1] = 2*processed_row[ind-1];
-                merge_flag = true;
-                k+=1;
-            } else if merge_flag == true{
-                processed_row.push(row[k]);
-                k+=1;
-                merge_flag = false;
-                ind+=1;
-            } else if ind == 0{
-                processed_row.push(row[k]);
-                ind+=1;
-                k+=1;
-            } else {
-                processed_row.push(row[k]);
-                ind+=1;
-                k+=1;
-                merge_flag = false;
-            }
-        }
-        while ind < row.len(){
-            processed_row.push(0);
-            ind+=1;
-        }
-        result_vector.push(processed_row);
 
-    }
-    result_vector
-
-}
