@@ -1,4 +1,4 @@
-use crate::board_states::gen_new;
+
 
 pub mod board_states;
 
@@ -36,9 +36,6 @@ impl Path{
     }
     fn curr_score(&self) -> i32{
         self.score.clone()
-    }
-    fn curr_path(&self) -> Vec<u8>{
-        self.directions.clone()
     }
 
 }
