@@ -2,7 +2,7 @@ use crate::board_states::gen_new;
 
 pub mod board_states;
 
-
+#[derive(Clone)]
 struct Path {
     score: i32,
     directions: Vec<u8>,
@@ -18,13 +18,6 @@ impl Path{
         }
 
 
-    }
-    fn clone(&self) -> Path{
-        Path {
-            score: self.score,
-            directions: self.directions.clone(),
-            board: self.board.clone(),
-        }
     }
     fn dir(&self, dir: u8) -> Path{
         let new_board = board_states::gen_new(self.board.clone(),dir);
@@ -52,89 +45,113 @@ impl Path{
 
 
 fn main(){
+    let mut max_score = 0;
+    for k in 0..100{
+        let score = agent_four_step_max();
+        if score >= max_score{
+            max_score = score;
+            println!("score: {}, runs: {}",max_score, k+1);
+        }
+    }
+}
+
+
+fn agent_four_step_max() -> i32{
     let mut board = board_states::create_board(4_usize);
     let mut k = 0;
-    while k < 1{
+    let mut old_board:Vec<Vec<i32>> = Vec::new();
+    while k < 10000 && old_board != board{
+        old_board = board.clone();
         k+=1;
-        println!("before update {:?}",board);
         let mut optimal_path: Path = Path::new(vec![],board.clone());
         let mut optimal_score = optimal_path.curr_score();
-        while optimal_path.curr_path().len() < 10000{
-            let mut new_path = optimal_path.clone();
-            let mut new_optimal = new_path.clone();
-            let mut score = 0;
-            for i in 0..4{
-                new_path = new_path.clone().dir(i);
-                if new_path.curr_score() > score{
-                    new_optimal = new_path.clone();
+//        while optimal_path.curr_path().len() < 4{
+//            let mut new_optimal = optimal_path.clone();
+//            for i in 0..4{
+//                let temp_path = optimal_path.clone().dir(i);
+//
+//                if temp_path.curr_score() > optimal_score{
+//                    new_optimal = temp_path.clone();
+//                    optimal_score = new_optimal.curr_score();
+//                }
+//            }
+//            optimal_path = new_optimal.clone();
+//
+//        }
+        for i in 0..4{
+
+            let i_path:Path = Path::new(vec![],board.clone());
+            let i_path = i_path.dir(i);
+            let i_score = i_path.curr_score();
+            if i_path.curr_score() > optimal_score{
+                optimal_score = i_score;
+                optimal_path = i_path.clone();
+            }
+
+            for j in 0..4{
+
+                let j_path = i_path.clone().dir(j);
+                let j_score = j_path.curr_score()+i_score;
+                if j_score> optimal_score{
+                    optimal_score = j_score;
+                    optimal_path = j_path.clone();
+                }
+
+                for k in 0..4{
+
+                    let k_path = j_path.clone().dir(k);
+                    let k_score = j_score + k_path.curr_score();
+                    if k_score > optimal_score{
+                        optimal_score = k_score;
+                        optimal_path = k_path.clone();
+                    }
+
+                    for l in 0..4{
+
+                        let l_path = k_path.clone().dir(l);
+                        let l_score = k_score + l_path.curr_score();
+                        if l_score >  optimal_score{
+                            optimal_score = l_score;
+                            optimal_path = l_path.clone();
+                        }
+
+
+                    }
                 }
             }
-            optimal_path = new_optimal.clone();
-
         }
-
-//        for i in 0..4{
-//
-//            let i_path:Path = Path::new(vec![i],board.clone());
-//            if i_path.curr_score() > optimal_score{
-//                optimal_score = i_path.curr_score();
-//                optimal_path = i_path.clone();
-//            }
-//
-//            for j in 0..4{
-//                let j_path= i_path.clone().dir(j);
-//                if j_path.curr_score() > optimal_score{
-//                    optimal_score = j_path.curr_score();
-//                    optimal_path = j_path.clone();
-//                }
-//
-//                for k in 0..4{
-//
-//                    let k_path= j_path.clone().dir(k);
-//                    if k_path.curr_score() > optimal_score{
-//                        optimal_score = k_path.curr_score();
-//                        optimal_path = k_path.clone();
-//                    }
-//
-//                    for l in 0..4{
-//
-//                        let l_path= k_path.clone().dir(l);
-//                        if l_path.curr_score() > optimal_score{
-//                            optimal_score = l_path.curr_score();
-//                            optimal_path = l_path.clone();
-//                        }
-//
-//
-//                    }
-//                }
-//            }
-//        }
-        let path = optimal_path.curr_path();
-        println!("{:?}",path);
-        let mut new_board = board.clone();
-        for k in 0..path.len(){
-            new_board = board_states::gen_new(new_board.clone(),path[k]);
-        }
-        println!("{:?}",new_board);
+        board = optimal_path.curr_board();
 
     }
+    let mut max_val = 0;
+    for i in 0..board.len(){
+        for j in 0..board[0].len(){
+            if board[i][j] > max_val{
+                max_val = board[i][j];
+            }
+        }
+    }
 
+    max_val
 }
 
 
 fn count_zeros(board: Vec<Vec<i32>>) -> i32 {
     let mut score = 0;
+    let mut zeros = 0;
     for i in 0..board.len(){
         for k in 0..board[i].len(){
-            if board[i][k] == 0{
-                score +=0;
+            if board[i][k] != 0{
+                score +=board[i][k];
             }
-            else{
-                score+=board[i][k];
+            else if board[i][k] == 0{
+                zeros+=1;
             }
 
         }
+
     }
+    score = score + 8*zeros;
     score
 }
 
